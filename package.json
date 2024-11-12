@@ -1,7 +1,7 @@
 {
-  "name": "lycaon",
+  "name": "authored",
   "version": "0.0.1",
-  "description": "lycaon",
+  "description": "authored",
   "author": "Marky <markjotep@gmail.com>",
   "license": "MIT",
   "types": "./types/index.d.ts",
