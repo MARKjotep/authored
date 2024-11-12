@@ -1,0 +1,35 @@
+{
+  "name": "lycaon",
+  "version": "0.0.1",
+  "description": "lycaon",
+  "author": "Marky <markjotep@gmail.com>",
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "main": "index.js",
+  "keywords": [
+    "ts",
+    "bun"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MARKjotep/authored.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MARKjotep/authored/issues"
+  },
+  "homepage": "https://github.com/MARKjotep/authored#readme",
+  "scripts": {
+    "build": "tsc ; dist=../../DIST/authored/ ; cp -r package.json $dist ; cp -r ./types/types.d.ts $dist/types; bun install --cwd $dist; "
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/pg": "^8.11.10"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
