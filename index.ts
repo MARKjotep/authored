@@ -1,214 +1,18 @@
 /// <reference path="./types/types.d.ts" />
-import { randomBytes, createCipheriv, createDecipheriv } from "node:crypto";
-import { CryptoHasher, file, gunzipSync, gzipSync, write, serve } from "bun";
+import { randomBytes } from "node:crypto";
+import { CryptoHasher, file, gunzipSync, gzipSync, write } from "bun";
 import { Client } from "pg";
-import { mkdirSync, statSync, writeFileSync, promises as fr } from "node:fs";
-
+import { promises as fr } from "node:fs";
+import { $$, O, str, get, is, html, Time, decodeSID } from "./tl";
+import { sign, verify } from "jsonwebtoken";
 /*
 -------------------------
 Utils
 -------------------------
 */
 
-const $$ = {
-  set p(a: any) {
-    if (Array.isArray(a)) {
-      console.log(...a);
-    } else {
-      console.log(a);
-    }
-  },
-  textD: new TextDecoder(),
-};
-
-const O = {
-  vals: Object.values,
-  keys: Object.keys,
-  items: Object.entries,
-  has: Object.hasOwn,
-  define: Object.defineProperty,
-  ass: Object.assign,
-  length: (ob: Object) => {
-    return Object.keys(ob).length;
-  },
-};
-
-const str = {
-  rbytes: new RegExp(/(\d+)(\d*)/, "m"),
-  strip: (char: string, tostrip: string) => {
-    let _char = char;
-    if (_char.startsWith(tostrip)) {
-      _char = _char.slice(1);
-    }
-    if (_char.endsWith(tostrip)) {
-      _char = _char.slice(0, -1);
-    }
-    return _char;
-  },
-  decode(str: any) {
-    return $$.textD.decode(str);
-  },
-  buffer(str: string): Buffer {
-    return Buffer.from(str);
-  },
-  digest(salt: string) {
-    const hmac = new Bun.CryptoHasher("sha256", salt);
-    hmac.update("hello");
-    return hmac.digest();
-  },
-};
-
-const is = {
-  bool: (v: any) => typeof v === "boolean",
-  str: (v: any) => typeof v === "string",
-  arr: (v: any) => Array.isArray(v),
-  file: async (path: string, data?: string) => {
-    try {
-      return statSync(path).isFile();
-    } catch (err) {
-      if (data !== undefined) writeFileSync(path, Buffer.from(data));
-      return true;
-    }
-  },
-  dir: (path: string) => {
-    try {
-      return statSync(path).isDirectory();
-    } catch (err) {
-      mkdirSync(path, { recursive: true });
-      return true;
-    }
-  },
-  number: (value: any) => {
-    return !isNaN(parseFloat(value)) && isFinite(value);
-  },
-  dict: (val: object) => {
-    return typeof val === "object" && val !== null && !Array.isArray(val);
-  },
-  arraybuff: (val: any) => {
-    return (
-      val instanceof Uint8Array ||
-      val instanceof ArrayBuffer ||
-      typeof val === "string"
-    );
-  },
-};
-
-const html = {
-  cookie: (
-    key: string,
-    value: string = "",
-    {
-      maxAge,
-      expires,
-      path,
-      domain,
-      secure,
-      httpOnly,
-      sameSite,
-    }: {
-      maxAge?: Date | number;
-      expires?: Date | string | number;
-      path?: string | null;
-      domain?: string;
-      secure?: boolean;
-      httpOnly?: boolean;
-      sameSite?: string | null;
-      sync_expires?: boolean;
-      max_size?: number;
-    },
-  ) => {
-    if (maxAge instanceof Date) {
-      maxAge = maxAge.getSeconds();
-    }
-
-    if (expires instanceof Date) {
-      expires = expires.toUTCString();
-    } else if (expires === 0) {
-      expires = new Date().toUTCString();
-    }
-
-    const cprops = [
-      ["Domain", domain],
-      ["Expires", expires],
-      ["Max-Age", maxAge],
-      ["Secure", secure],
-      ["HttpOnly", httpOnly],
-      ["Path", path],
-      ["SameSite", sameSite],
-    ];
-
-    return cprops
-      .reduce<string[]>(
-        (acc, [kk, v]) => {
-          if (v !== undefined) acc.push(`${kk}=${v}`);
-          return acc;
-        },
-        [`${key}=${value}`],
-      )
-      .join("; ");
-  },
-};
-
-class Time {
-  date: Date;
-  constructor(dateMS?: number) {
-    this.date = dateMS ? new Date(dateMS) : new Date();
-  }
-  delta(date2: number | null = null, _Date: boolean = false) {
-    const TD = Time.delta(this.date.getTime(), date2);
-    return _Date ? new Date(TD) : TD;
-  }
-  //
-  timed(time?: {
-    year?: number;
-    month?: number;
-    day?: number;
-    hour?: number;
-    minute?: number;
-    second?: number;
-  }) {
-    const tmd = this.date.getTime();
-    let endD = this.date;
-    if (time) {
-      const { year, month, day, hour, minute, second } = time;
-      if (year) {
-        endD = new Date(endD.setFullYear(endD.getFullYear() + year));
-      }
-      if (month) {
-        endD = new Date(endD.setMonth(endD.getMonth() + month));
-      }
-      if (day) {
-        endD = new Date(endD.setDate(endD.getDate() + day));
-      }
-      if (hour) {
-        endD = new Date(endD.setHours(endD.getHours() + hour));
-      }
-      if (minute) {
-        endD = new Date(endD.setMinutes(endD.getMinutes() + minute));
-      }
-      if (second) {
-        endD = new Date(endD.setSeconds(endD.getSeconds() + second));
-      }
-    }
-    return endD;
-  }
-  static delta(date1: number, date2: number | null = null) {
-    if (date2) {
-      return date2 - date1;
-    } else {
-      return date1 - Date.now();
-    }
-  }
-  static get now() {
-    return Date.now();
-  }
-}
-
-function decodeSID(name: string) {
-  const bkey = str.buffer(name);
-  const hash = new CryptoHasher("md5");
-  hash.update(bkey);
-  return hash.digest("hex");
+function hashedToken(len = 64) {
+  return new CryptoHasher("sha256").update(randomBytes(len)).digest("hex");
 }
 
 /*
@@ -331,17 +135,17 @@ class callBack {
   }
 }
 
-class ServerSide extends callBack {
+export class ServerSide extends callBack {
   [Key: string]: any;
   modified: boolean;
   sid: string;
+
   private readonly readonly: boolean;
   constructor(sid: string = "", initial: obj<string> = {}, readonly = false) {
     super(initial);
     this.modified = false;
     this.sid = sid;
     this.readonly = readonly;
-    // this.permanent = permanent;
   }
   get session() {
     return new Proxy<ServerSide>(this, this);
@@ -355,7 +159,8 @@ class Signator {
   }
   getSignature(val: string) {
     const vals = str.buffer(val);
-    return str.digest(this.salt).toString("base64");
+    const key = this.deriveKey();
+    return str.digest(key, vals).toString("base64");
   }
   deriveKey() {
     return str.digest(this.salt);
@@ -390,24 +195,32 @@ class Signator {
   verifySignature(val: string, sig: string) {
     return this.getSignature(val) == sig ? true : false;
   }
+}
+
+class sidGenerator {
+  signer: Signator;
+  constructor(salt: string) {
+    this.signer = new Signator(salt);
+  }
   generate(len = 21) {
     const rbyte = randomBytes(len);
     let lbyte = rbyte.toString("base64");
     if (lbyte.endsWith("=")) {
       lbyte = lbyte.slice(0, -1);
     }
-    return this.sign(lbyte);
+    return this.signer.sign(lbyte);
   }
 }
 
-class AuthInterface extends Signator {
+export class AuthInterface extends sidGenerator {
   config: authConfig;
   constructor(config: authConfig, salt?: string) {
     super(salt ?? "salty");
     this.config = config;
   }
   async openSession(sid?: string, readonly?: boolean): Promise<ServerSide> {
-    if (sid && this.unsign(sid)) return await this.fetchSession(sid, readonly);
+    if (sid && this.signer.unsign(sid))
+      return await this.fetchSession(sid, readonly);
     return this.new;
   }
   async fetchSession(sid: string, readonly?: boolean): Promise<ServerSide> {
@@ -415,7 +228,7 @@ class AuthInterface extends Signator {
   }
   async saveSession(
     sesh: ServerSide,
-    headers?: obj<string>,
+    X?: Headers,
     deleteMe: boolean = false,
   ): Promise<void> {
     return;
@@ -425,6 +238,11 @@ class AuthInterface extends Signator {
   }
   get readonly() {
     return new ServerSide(this.generate(), {}, true).session;
+  }
+  get getExpiration(): string | null {
+    const now = new Date();
+    const lifet = this.config.LIFETIME;
+    return now.setDate(now.getDate() + lifet).toString();
   }
   setCookie(xsesh: ServerSide, life: Date | number, _sameSite = "") {
     let sameSite = null;
@@ -603,19 +421,18 @@ class FSInterface extends AuthInterface {
   }
   async saveSession(
     sesh: ServerSide,
-    headers?: obj<string>,
+    X?: Headers,
     deleteMe: boolean = false,
   ): Promise<void> {
     const sCookie = (life: 0 | Date) => {
-      if (headers) {
+      if (X) {
         const cookie = this.setCookie(sesh, life);
-        O.ass(headers, {
-          "Set-Cookie": cookie,
-        });
+        if (X) {
+          X.set("Set-Cookie", cookie);
+        }
       }
     };
     const prefs = this.config.KEY_PREFIX + sesh.sid;
-
     if (!sesh.length) {
       if (!sesh.new && (sesh.modified || deleteMe)) {
         this.cacher.delete(prefs);
@@ -643,31 +460,315 @@ class FSInterface extends AuthInterface {
 Postgres
 -------------------------
 */
+
+// Single query --
+export class PGCache<T extends bs> {
+  client: Client;
+  query: string;
+  f_timed: number;
+  data: Map<any, T>;
+  key: string;
+  constructor(client: Client, key: string, query: string) {
+    this.query = query;
+    this.key = key;
+    this.f_timed = Date.now();
+    this.data = new Map();
+    this.client = client;
+  }
+  async init(val: string): Promise<T | null> {
+    const TQ = await this.client.query({
+      text: this.query + ` where ${this.key} = $1`,
+      values: [val],
+    });
+    // Delete keys with no value
+    for (const [k, v] of this.data) {
+      if (!v) {
+        this.data.delete(k);
+      }
+    }
+    if (TQ.rowCount) {
+      const tr = TQ.rows[0];
+      tr.f_timed = Date.now();
+      this.data.set(val, tr);
+      return tr;
+    } else {
+      this.data.set(val, null as any);
+      return null;
+    }
+  }
+  async checkLast(time: number) {
+    const xl = new Date(time);
+    xl.setMinutes(xl.getMinutes() + 15);
+    if (xl.getTime() < Date.now()) {
+      return true;
+    }
+    return false;
+  }
+  async get(val: string | undefined): Promise<T | null> {
+    if (val) {
+      const hdat = this.data.get(val);
+      if (hdat == undefined) {
+        return await this.init(val);
+      } else {
+        if (hdat && "f_timed" in hdat) {
+          const atv = await this.checkLast(hdat.f_timed!);
+          if (atv) {
+            return await this.init(val);
+          }
+        }
+        return hdat;
+      }
+    }
+    return null;
+  }
+  async set(data: T) {
+    if (this.key in data) {
+      data.f_timed = Date.now();
+      this.data.set(data[this.key], data);
+    }
+  }
+  async delete(key: string) {
+    this.data.delete(key);
+  }
+}
+
 class postgreSession extends ServerSide {}
+
+class PostgreSQL extends AuthInterface {
+  sclass: typeof ServerSide = postgreSession;
+  client: Client;
+  pgc: PGCache<sesh_db>;
+  constructor(client: Client, config: authConfig) {
+    super(config);
+    this.client = client;
+    this.pgc = new PGCache<sesh_db>(client, "sid", `SELECT * FROM session`);
+  }
+  async fetchSession(sid: string) {
+    const prefs = this.config.KEY_PREFIX + sid;
+    const itms = await this.pgc.get(prefs);
+    let data = {};
+    if (itms) {
+      data = JSON.parse(itms.data);
+    }
+    return new this.sclass(sid, data).session;
+  }
+  async saveSession(
+    xsesh: ServerSide,
+    rsx?: any,
+    deleteMe?: boolean,
+    sameSite: string = "",
+  ): Promise<void> {
+    const prefs = this.config.KEY_PREFIX + xsesh.sid;
+    if (!Object.entries(xsesh.data).length) {
+      if (xsesh.modified || deleteMe) {
+        if (rsx) {
+          await this.client.query({
+            text: `DELETE FROM session WHERE sid = $1`,
+            values: [prefs],
+          });
+
+          await this.pgc.delete(prefs);
+          const cookie = this.setCookie(xsesh, 0);
+          rsx.header = { "Set-Cookie": cookie };
+        }
+      }
+      return;
+    }
+
+    const life = new Time().timed({ day: this.config.LIFETIME });
+    const data = JSON.stringify(xsesh.data);
+
+    if (rsx) {
+      const expre = this.getExpiration;
+      await this.client.query({
+        text: `INSERT INTO session(sid, data, expiration) VALUES($1, $2, $3)`,
+        values: [prefs, data, expre ? expre : null],
+      });
+      await this.pgc.set({
+        sid: prefs,
+        data: data,
+        expiration: expre ?? "",
+        life: Time.now,
+      });
+      const cookie = this.setCookie(xsesh, life);
+      rsx.header = { "Set-Cookie": cookie };
+    }
+  }
+}
+
+/*
+-------------------------
+JWT
+-------------------------
+*/
+
+// export class JWT extends ServerSide {}
+
+export class JWTInterface extends sidGenerator {
+  salt: string;
+  constructor() {
+    super("salty_jwt");
+    this.salt = "salty_jwt";
+  }
+  sign(payload: obj<any>) {
+    const options = {
+      issuer: this.salt, // Issuer of the token
+    };
+    const datax = {
+      data: payload,
+    };
+
+    return sign(datax, get.secret(), options);
+  }
+  get random() {
+    const options = {
+      issuer: this.salt, // Issuer of the token
+    };
+    const datax = {
+      data: hashedToken(),
+    };
+    return sign(datax, get.secret(), options);
+  }
+  jwt() {
+    //
+    const rid = this.generate();
+    return new ServerSide(rid).session;
+  }
+  verify(
+    payload: string,
+    time?: {
+      days?: number;
+      hours?: number;
+      minutes?: number;
+      seconds?: number;
+    },
+  ): obj<string> | null {
+    try {
+      const ever = verify(payload, get.secret());
+
+      if (ever) {
+        const { data, iat, iss } = ever as any;
+        if (iss == this.salt) {
+          if (time) {
+            const { days, hours, minutes, seconds } = time;
+            let endD = new Date(iat * 1000);
+            if (days) {
+              endD = new Date(endD.setDate(endD.getDate() + days));
+            } else if (hours) {
+              endD = new Date(endD.setHours(endD.getHours() + hours));
+            } else if (minutes) {
+              endD = new Date(endD.setMinutes(endD.getMinutes() + minutes));
+            } else if (seconds) {
+              endD = new Date(endD.setSeconds(endD.getSeconds() + seconds));
+            }
+            if (endD.getTime() - Date.now() > 0) {
+              return data as obj<string>;
+            }
+          } else {
+            return data as obj<string>;
+          }
+        }
+      }
+    } catch (e) {}
+
+    return null;
+  }
+  open(
+    token: string,
+    time?: {
+      days?: number;
+      hours?: number;
+      minutes?: number;
+      seconds?: number;
+    },
+  ): ServerSide {
+    if (token) {
+      const tv = this.verify(token, time);
+      if (tv) {
+        return new ServerSide(token, tv, true).session;
+      }
+    }
+
+    return this.jwt();
+  }
+  save(xjwts: ServerSide) {
+    const data = xjwts.data;
+    if ("access_token" in data) {
+      delete data["access_token"];
+    }
+    return this.sign(data);
+  }
+  new(payload: obj<any>) {
+    return this.sign(payload);
+  }
+}
+
+// json files CACHED reader --
+export class Fjson<T extends fs> {
+  fs: string;
+  f_timed: number;
+  data: Map<any, T>;
+  key: string;
+  dir: string;
+  constructor({ dir, fs, key }: { dir: string; fs: string; key: string }) {
+    this.dir = dir + "/ffs";
+    this.key = key;
+    this.f_timed = Date.now();
+    this.data = new Map();
+    this.fs = this.dir + `/${fs}.json`;
+  }
+  async init() {
+    if (is.dir(this.dir) && (await is.file(this.fs, "{}"))) {
+      file(this.fs)
+        .text()
+        .then((e) => {
+          const FJSON = JSON.parse(e);
+          this.data = new Map(O.items(FJSON));
+        })
+        .catch((e) => {
+          e;
+        });
+    }
+  }
+  async get(val: string | undefined): Promise<T | null> {
+    const hdat = this.data.get(val);
+    if (hdat) return hdat;
+    return null;
+  }
+  async set(data: T) {
+    if (this.key in data) {
+      const frr = await file(this.fs).text();
+      if (frr) {
+        const FJSON = JSON.parse(frr);
+        const dtk = data[this.key] as string;
+        FJSON[dtk] = data;
+        await write(this.fs, JSON.stringify(FJSON));
+      }
+      this.data.set(data[this.key], data);
+    }
+  }
+  async delete(key: string) {
+    if (await this.get(key)) {
+      const frr = await file(this.fs).text();
+      if (frr) {
+        const FJSON = JSON.parse(frr.toString());
+        if (key in FJSON) {
+          delete FJSON[key];
+          await write(this.fs, JSON.stringify(FJSON));
+        }
+        this.data.delete(key);
+      }
+    }
+  }
+  async json() {
+    const fraw = await file(this.fs).text();
+    const JPR = JSON.parse(fraw);
+    return O.vals(JPR);
+  }
+}
 
 /*
 -------------------------
 
 -------------------------
 */
-
-const NA = new Auth({
-  dir: __dirname,
-});
-
-const SS = NA.session;
-
-serve({
-  port: 3000,
-  async fetch(request, server) {
-    const headers = {
-      "Content-Type": "text/html",
-    };
-    const SL = await SS.loadHeader(request);
-
-    await SS.saveSession(SL, headers);
-
-    //
-    return new Response("hello", { headers });
-  },
-});
