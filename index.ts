@@ -110,8 +110,9 @@ class callBack {
         this.length++;
       }
       target.data[prop] = val;
+      return true;
     }
-    return target;
+    return false;
   }
   get(target: any, prop: string) {
     if (prop in target) {
@@ -138,13 +139,14 @@ class callBack {
 export class ServerSide extends callBack {
   [Key: string]: any;
   modified: boolean;
-  sid: string;
-
   private readonly readonly: boolean;
-  constructor(sid: string = "", initial: obj<string> = {}, readonly = false) {
+  constructor(
+    public sid: string = "",
+    initial: obj<string> = {},
+    readonly = false,
+  ) {
     super(initial);
     this.modified = false;
-    this.sid = sid;
     this.readonly = readonly;
   }
   get session() {
@@ -153,10 +155,7 @@ export class ServerSide extends callBack {
 }
 
 class Signator {
-  salt: string;
-  constructor(salt: string) {
-    this.salt = salt;
-  }
+  constructor(public salt: string) {}
   getSignature(val: string) {
     const vals = str.buffer(val);
     const key = this.deriveKey();
@@ -213,10 +212,11 @@ class sidGenerator {
 }
 
 export class AuthInterface extends sidGenerator {
-  config: authConfig;
-  constructor(config: authConfig, salt?: string) {
+  constructor(
+    public config: authConfig,
+    salt?: string,
+  ) {
     super(salt ?? "salty");
-    this.config = config;
   }
   async openSession(sid?: string, readonly?: boolean): Promise<ServerSide> {
     if (sid && this.signer.unsign(sid))
@@ -384,14 +384,13 @@ class FSCached<T extends bs> {
 class FSInterface extends AuthInterface {
   cacher: FSCached<ffcache>;
   side = FSession;
-  isJWT: boolean;
+
   constructor(
     config: authConfig,
     cacherpath = ".sessions",
-    isJWT: boolean = false,
+    public isJWT: boolean = false,
   ) {
     super(config);
-    this.isJWT = isJWT;
     this.cacher = new FSCached(cacherpath);
   }
   life(key: string, lstr: number) {
