@@ -2,8 +2,9 @@ import { randomBytes } from "node:crypto";
 import { CryptoHasher, file, gunzipSync, gzipSync, write } from "bun";
 import { Client } from "pg";
 import { promises as fr } from "node:fs";
-import { O, str, get, is, html, Time, decodeSID } from "./tl";
 import { sign, verify } from "jsonwebtoken";
+
+import { O, str, get, is, html, Time, decodeSID } from "../__";
 
 /*
 -------------------------
@@ -176,9 +177,8 @@ export class ServerSide extends callBack {
 class Signator {
   constructor(public salt: string) {}
   getSignature(val: string) {
-    const vals = str.buffer(val);
-    const key = this.deriveKey();
-    return str.digest(key, vals).toString("base64");
+    const key = this.deriveKey().toString();
+    return str.digest(key, val).toString("base64");
   }
   deriveKey() {
     return str.digest(this.salt);
