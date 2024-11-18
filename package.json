@@ -4,7 +4,7 @@
   "description": "authored",
   "author": "Marky <markjotep@gmail.com>",
   "license": "MIT",
-  "types": "./types/index.d.ts",
+  "types": "index.d.ts",
   "main": "index.js",
   "keywords": [
     "ts",
@@ -31,5 +31,6 @@
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
-  }
+  },
+  "bun": true
 }

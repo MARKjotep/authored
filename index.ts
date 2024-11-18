@@ -1,15 +1,34 @@
-/// <reference path="./types/types.d.ts" />
 import { randomBytes } from "node:crypto";
 import { CryptoHasher, file, gunzipSync, gzipSync, write } from "bun";
 import { Client } from "pg";
 import { promises as fr } from "node:fs";
-import { $$, O, str, get, is, html, Time, decodeSID } from "./tl";
+import { O, str, get, is, html, Time, decodeSID } from "./tl";
 import { sign, verify } from "jsonwebtoken";
+
 /*
 -------------------------
 Utils
 -------------------------
 */
+
+interface obj<T> {
+  [Key: string]: T;
+}
+interface fs {
+  [key: string]: string | undefined | boolean | number;
+}
+interface bs {
+  f_timed?: number;
+  [key: string]: string | undefined | boolean | number;
+}
+
+interface sesh_db {
+  sid: string;
+  data: string;
+  expiration: string;
+  f_timed?: number;
+  [key: string]: string | undefined | boolean | number;
+}
 
 function hashedToken(len = 64) {
   return new CryptoHasher("sha256").update(randomBytes(len)).digest("hex");
@@ -139,7 +158,7 @@ class callBack {
 export class ServerSide extends callBack {
   [Key: string]: any;
   modified: boolean;
-  private readonly readonly: boolean;
+  private readonly readOnly: boolean;
   constructor(
     public sid: string = "",
     initial: obj<string> = {},
@@ -147,7 +166,7 @@ export class ServerSide extends callBack {
   ) {
     super(initial);
     this.modified = false;
-    this.readonly = readonly;
+    this.readOnly = readonly;
   }
   get session() {
     return new Proxy<ServerSide>(this, this);
