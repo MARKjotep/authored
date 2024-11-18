@@ -18,9 +18,7 @@
     "url": "https://github.com/MARKjotep/authored/issues"
   },
   "homepage": "https://github.com/MARKjotep/authored#readme",
-  "scripts": {
-    "build": "tsc ; dist=../../DIST/authored/ ; cp -r package.json $dist ; cp -r ./types/types.d.ts $dist/types; bun install --cwd $dist; "
-  },
+  "scripts": {},
   "dependencies": {
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.1"

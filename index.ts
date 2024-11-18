@@ -1,10 +1,35 @@
 import { randomBytes } from "node:crypto";
 import { CryptoHasher, file, gunzipSync, gzipSync, write } from "bun";
 import { Client } from "pg";
-import { promises as fr } from "node:fs";
+import { promises as fr, mkdirSync, writeFileSync } from "node:fs";
 import { sign, verify } from "jsonwebtoken";
 
-import { O, str, get, is, html, Time, decodeSID } from "../__";
+import { O, str, get, is, html, Time } from "../_misc/__";
+
+export function decodeSID(str: string) {
+  const hash = new CryptoHasher("md5");
+  hash.update(str);
+  return hash.digest("hex");
+}
+const textD = new TextDecoder();
+
+const _is = {
+  file: (path: string, data?: string) => {
+    try {
+      writeFileSync(path, data ?? "", { flag: "wx" });
+    } catch (error) {
+      //
+    }
+    return true;
+  },
+  dir: (path: string) => {
+    mkdirSync(path, { recursive: true });
+    return true;
+  },
+  decode(str: any) {
+    return textD.decode(str);
+  },
+};
 
 /*
 -------------------------
@@ -186,7 +211,7 @@ class Signator {
   sign(val: string) {
     const sig = this.getSignature(val);
     const vals = str.buffer(val + "." + sig);
-    return str.decode(vals);
+    return _is.decode(vals);
   }
   unsign(signedVal: string) {
     if (!(signedVal.indexOf(".") > -1)) {
@@ -346,7 +371,7 @@ class FSCached<T extends bs> {
     if (await FL.exists()) {
       const data = await FL.arrayBuffer();
       try {
-        const GX = JSON.parse(str.decode(gunzipSync(data)));
+        const GX = JSON.parse(_is.decode(gunzipSync(data)));
         GX.f_timed = Date.now();
         this.data.set(fname, GX);
         return GX;
@@ -383,7 +408,7 @@ class FSCached<T extends bs> {
     const fname = decodeSID(val);
     const fpath = this.path + fname;
 
-    await is.file(fpath, "");
+    _is.file(fpath, "");
     await write(fpath, gzipSync(JSON.stringify(data)));
     data.f_timed = Date.now();
     this.data.set(val, data);
@@ -736,7 +761,7 @@ export class Fjson<T extends fs> {
     this.fs = this.dir + `/${fs}.json`;
   }
   async init() {
-    if (is.dir(this.dir) && (await is.file(this.fs, "{}"))) {
+    if (_is.dir(this.dir) && _is.file(this.fs, "{}")) {
       file(this.fs)
         .text()
         .then((e) => {
