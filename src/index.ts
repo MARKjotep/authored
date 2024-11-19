@@ -3,8 +3,16 @@ import { CryptoHasher, file, gunzipSync, gzipSync, write } from "bun";
 import { Client } from "pg";
 import { promises as fr, mkdirSync, writeFileSync } from "node:fs";
 import { sign, verify } from "jsonwebtoken";
-
-import { O, str, get, is, Time } from "../_misc/__";
+import {
+  buffed,
+  getSecret,
+  hdigest,
+  oAss,
+  oItems,
+  oLen,
+  oVals,
+  Time,
+} from "./core/@";
 
 export function decodeSID(str: string) {
   const hash = new CryptoHasher("md5");
@@ -197,11 +205,11 @@ class callBack {
   constructor(initial: obj<string> = {}) {
     this.modified = true;
     this.data = {};
-    this.length = O.length(initial);
+    this.length = oLen(initial);
     if (this.length) {
       this.new = false;
     }
-    O.ass(this.data, initial);
+    oAss(this.data, initial);
   }
   set(target: any, prop: string, val: string) {
     if (!this.readonly && target.data[prop] != val) {
@@ -258,14 +266,14 @@ class Signator {
   constructor(public salt: string) {}
   getSignature(val: string) {
     const key = this.deriveKey().toString();
-    return str.digest(key, val).toString("base64");
+    return hdigest(key, val).toString("base64");
   }
   deriveKey() {
-    return str.digest(this.salt);
+    return hdigest(this.salt);
   }
   sign(val: string) {
     const sig = this.getSignature(val);
-    const vals = str.buffer(val + "." + sig);
+    const vals = buffed(val + "." + sig);
     return _is.decode(vals);
   }
   unsign(signedVal: string) {
@@ -279,8 +287,8 @@ class Signator {
   }
   loadUnsign(vals: string) {
     if (this.unsign(vals)) {
-      const sval = str.buffer(vals);
-      const sept = str.buffer(".").toString()[0];
+      const sval = buffed(vals);
+      const sept = buffed(".").toString()[0];
       if (!(sept in sval)) {
         throw Error("No sep found");
       }
@@ -344,7 +352,7 @@ export class AuthInterface extends sidGenerator {
     return now.setDate(now.getDate() + lifet).toString();
   }
   setCookie(xsesh: ServerSide, life: Date | number, _sameSite = "") {
-    let sameSite = null;
+    let sameSite: string | null = null;
     let xpire: obj<any> = {};
     if (this.config.COOKIE_SAMESITE) {
       sameSite = this.config.COOKIE_SAMESITE;
@@ -716,7 +724,7 @@ export class JWTInterface extends sidGenerator {
       data: payload,
     };
 
-    return sign(datax, get.secret(), options);
+    return sign(datax, getSecret(), options);
   }
   get random() {
     const options = {
@@ -725,7 +733,7 @@ export class JWTInterface extends sidGenerator {
     const datax = {
       data: hashedToken(),
     };
-    return sign(datax, get.secret(), options);
+    return sign(datax, getSecret(), options);
   }
   jwt() {
     //
@@ -742,7 +750,7 @@ export class JWTInterface extends sidGenerator {
     },
   ): obj<string> | null {
     try {
-      const ever = verify(payload, get.secret());
+      const ever = verify(payload, getSecret());
 
       if (ever) {
         const { data, iat, iss } = ever as any;
@@ -821,7 +829,7 @@ export class Fjson<T extends fs> {
         .text()
         .then((e) => {
           const FJSON = JSON.parse(e);
-          this.data = new Map(O.items(FJSON));
+          this.data = new Map(oItems(FJSON));
         })
         .catch((e) => {
           e;
@@ -861,7 +869,7 @@ export class Fjson<T extends fs> {
   async json() {
     const fraw = await file(this.fs).text();
     const JPR = JSON.parse(fraw);
-    return O.vals(JPR);
+    return oVals(JPR);
   }
 }
 
