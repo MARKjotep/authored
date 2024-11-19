@@ -4,7 +4,7 @@ import { Client } from "pg";
 import { promises as fr, mkdirSync, writeFileSync } from "node:fs";
 import { sign, verify } from "jsonwebtoken";
 
-import { O, str, get, is, html, Time } from "../_misc/__";
+import { O, str, get, is, Time } from "../_misc/__";
 
 export function decodeSID(str: string) {
   const hash = new CryptoHasher("md5");
@@ -13,6 +13,61 @@ export function decodeSID(str: string) {
 }
 const textD = new TextDecoder();
 
+const html = {
+  cookie: (
+    key: string,
+    value: string = "",
+    {
+      maxAge,
+      expires,
+      path,
+      domain,
+      secure,
+      httpOnly,
+      sameSite,
+    }: {
+      maxAge?: Date | number;
+      expires?: Date | string | number;
+      path?: string | null;
+      domain?: string;
+      secure?: boolean;
+      httpOnly?: boolean;
+      sameSite?: string | null;
+      sync_expires?: boolean;
+      max_size?: number;
+    },
+  ) => {
+    if (maxAge instanceof Date) {
+      maxAge = maxAge.getSeconds();
+    }
+
+    if (expires instanceof Date) {
+      expires = expires.toUTCString();
+    } else if (expires === 0) {
+      expires = new Date().toUTCString();
+    }
+
+    const cprops = [
+      ["Domain", domain],
+      ["Expires", expires],
+      ["Max-Age", maxAge],
+      ["Secure", secure],
+      ["HttpOnly", httpOnly],
+      ["Path", path],
+      ["SameSite", sameSite],
+    ];
+
+    return cprops
+      .reduce<string[]>(
+        (acc, [kk, v]) => {
+          if (v !== undefined) acc.push(`${kk}=${v}`);
+          return acc;
+        },
+        [`${key}=${value}`],
+      )
+      .join("; ");
+  },
+};
 const _is = {
   file: (path: string, data?: string) => {
     try {
