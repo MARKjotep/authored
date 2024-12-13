@@ -1,10 +1,44 @@
 export interface obj<T> {
     [Key: string]: T;
 }
+export type dict<K extends keyof any, T> = {
+    [P in K]: T;
+};
 export type V = string | number | boolean;
+export declare function Singleton<T extends {
+    new (...args: any[]): any;
+}>(constructor: T): {
+    new (...args: any[]): {
+        [x: string]: any;
+    };
+} & T;
+export declare function Cached<T extends {
+    new (...args: any[]): any;
+}>(constructor: T): {
+    new (...args: any[]): {
+        [x: string]: any;
+    };
+} & T;
+export declare class $$ {
+    static set p(a: any);
+}
+export declare class idm {
+    private _c;
+    private _id;
+    constructor(mid?: string);
+    get id(): string;
+    get mid(): string;
+}
+export declare class Mapper<K, V> extends Map<K, V> {
+    obj(obj?: object | null): void;
+    map(map: Mapper<K, V>): void;
+    ass<T>(key: K, obj: T): void;
+}
+export declare const keyInMap: <T>(id: string, map: Mapper<string, any>) => T;
+export declare const keyInMapArray: <T>(id: string, map: Mapper<string, any>) => T;
 export declare const numSequence: (length: number) => number[];
 export declare const RBYTES: RegExp;
-export declare const isFN: (v: any) => v is Function, isNumber: (value: any) => boolean, isDict: (val: object) => boolean, isArraybuff: (val: any) => val is string | Uint8Array | ArrayBuffer, isClassOrId: (k: string) => boolean, isBool: (v: any) => v is boolean, isStr: (v: any) => v is string, isArr: (v: any) => v is any[], isObj: (v: any) => v is object, isNum: (v: any) => v is number, isFile: (path: string, data?: string) => boolean, isDir: (path: string) => boolean;
+export declare const isFN: (v: any) => v is Function, isAsync: (v: any) => v is Function, isNumber: (value: any) => boolean, isDict: (val: object) => boolean, isArraybuff: (val: any) => val is string | Uint8Array | ArrayBuffer, isClassOrId: (k: string) => boolean, isBool: (v: any) => v is boolean, isStr: (v: any) => v is string, isArr: (v: any) => v is any[], isObj: (v: any) => v is object, isNum: (v: any) => v is number, isNull: (v: any) => v is null, isUndefined: (v: any) => v is undefined, isNotWindow: () => boolean, isInt: (str: string) => boolean;
 export declare const oVals: {
     <T>(o: {
         [s: string]: T;
@@ -24,9 +58,10 @@ export declare const oVals: {
     <T extends {}, U, V, W>(target: T, source1: U, source2: V, source3: W): T & U & V & W;
     (target: object, ...sources: any[]): any;
 }, oLen: (ob: object) => number;
-export declare const strip: (char: string, tostrip: string) => string, buffed: (str: string) => Buffer, hdigest: (...salt: string[]) => Buffer, ngify: (str: object) => string, sparse: (str: string) => any, reCamel: (_case: string) => string;
-export declare const getSecret: () => string, getByteRange: (fsize: number, range: string) => number[], getArgs: (params: string[], vals: string[]) => obj<string>;
-export declare const pathType: (wrd: string, isFinal?: boolean) => [any, string], parsePath: (path: string) => {
+export declare const strip: (str: string, charToStrip: string) => string, stripOnce: (char: string, tostrip: string) => string, buffed: (str: string) => Buffer, hdigest: (...salt: string[]) => Buffer, ngify: (str: object) => string, sparse: (str: string) => any, reCamel: (_case: string) => string;
+export declare const getSecret: () => string, getByteRange: (fsize: number, range: string) => [number, number, number], getArgs: (params: string[], vals: string[]) => obj<string>;
+export declare const pathType: (wrd: string, isFinal?: boolean) => [any, string];
+export declare function parsePath(path: string): {
     parsed: string[];
     args: string[];
 };

@@ -1,6 +1,6 @@
 {
   "name": "authored",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "authored",
   "author": "Marky <markjotep@gmail.com>",
   "license": "MIT",
@@ -37,5 +37,6 @@
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
-  "bun": true
+  "bun": true,
+  "type": "module"
 }
