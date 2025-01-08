@@ -1,16 +1,6 @@
 import { Client } from 'pg';
 
-declare function decodeSID(str: string): string;
-interface obj<T> {
-    [Key: string]: T;
-}
-interface fs {
-    [key: string]: string | undefined | boolean | number;
-}
-interface bs {
-    f_timed?: number;
-    [key: string]: string | undefined | boolean | number;
-}
+type dbs = "fs" | "postgres";
 type authConfig = {
     COOKIE_NAME: string;
     COOKIE_DOMAIN: string;
@@ -31,18 +21,9 @@ type authConfig = {
     JWT_STORAGE: string;
     JWT_LIFETIME: number;
 };
-type dbs = "fs" | "postgres";
-declare class Auth {
-    postgresClient?: Client;
-    config: authConfig;
-    constructor({ type, dir }?: {
-        type?: dbs;
-        dir?: string;
-    });
-    initStorage(path: string): this;
-    get session(): AuthInterface;
-    get jwt(): FSInterface;
-}
+
+type obj<T> = Record<string, T>;
+
 declare class callBack {
     [Key: string]: any;
     data: obj<string>;
@@ -63,6 +44,7 @@ declare class ServerSide extends callBack {
     constructor(sid?: string, initial?: obj<string>, readonly?: boolean);
     get session(): ServerSide;
 }
+
 declare class Signator {
     salt: string;
     constructor(salt: string);
@@ -73,11 +55,13 @@ declare class Signator {
     loadUnsign(vals: string): string | undefined;
     verifySignature(val: string, sig: string): boolean;
 }
+
 declare class sidGenerator {
     signer: Signator;
     constructor(salt: string);
     generate(len?: number): string;
 }
+
 declare class AuthInterface extends sidGenerator {
     config: authConfig;
     constructor(config: authConfig, salt?: string);
@@ -90,7 +74,22 @@ declare class AuthInterface extends sidGenerator {
     setCookie(xsesh: ServerSide, life: Date | number, _sameSite?: string): string;
     loadHeader(req: any, readonly?: boolean): Promise<ServerSide>;
 }
-declare class FSession extends ServerSide {
+
+declare class Auth {
+    postgresClient?: Client;
+    config: authConfig;
+    constructor({ type, dir }?: {
+        type?: dbs;
+        dir?: string;
+    });
+    initStorage(path: string): this;
+    get session(): AuthInterface;
+    get jwt(): FSInterface;
+}
+
+interface bs$1 {
+    f_timed?: number;
+    [key: string]: string | undefined | boolean | number;
 }
 interface ffcache {
     [key: string]: string | undefined | boolean | number;
@@ -98,7 +97,7 @@ interface ffcache {
     data: string;
     life: number;
 }
-declare class FSCached<T extends bs> {
+declare class FSCached<T extends bs$1> {
     path: string;
     data: Map<any, T>;
     constructor(folderpath: string);
@@ -108,6 +107,9 @@ declare class FSCached<T extends bs> {
     set(val: string, data: T): Promise<void>;
     delete(key: string): Promise<void>;
 }
+
+declare class FSession extends ServerSide {
+}
 declare class FSInterface extends AuthInterface {
     isJWT: boolean;
     cacher: FSCached<ffcache>;
@@ -116,6 +118,11 @@ declare class FSInterface extends AuthInterface {
     life(key: string, lstr: number): boolean;
     fetchSession(sid: string, readonly?: boolean): Promise<ServerSide>;
     saveSession(sesh: ServerSide, X?: Headers, deleteMe?: boolean): Promise<void>;
+}
+
+interface bs {
+    f_timed?: number;
+    [key: string]: string | undefined | boolean | number;
 }
 declare class PGCache<T extends bs> {
     client: Client;
@@ -130,7 +137,26 @@ declare class PGCache<T extends bs> {
     set(data: T): Promise<void>;
     delete(key: string): Promise<void>;
 }
-declare class JWTInterface extends sidGenerator {
+
+declare class PostgreSession extends ServerSide {
+}
+interface sesh_db {
+    sid: string;
+    data: string;
+    expiration: string;
+    f_timed?: number;
+    [key: string]: string | undefined | boolean | number;
+}
+declare class PGInterface extends AuthInterface {
+    sclass: typeof ServerSide;
+    client: Client;
+    pgc: PGCache<sesh_db>;
+    constructor(client: Client, config: authConfig);
+    fetchSession(sid: string): Promise<ServerSide>;
+    saveSession(xsesh: ServerSide, rsx?: any, deleteMe?: boolean, sameSite?: string): Promise<void>;
+}
+
+declare class JWTSession extends sidGenerator {
     salt: string;
     constructor();
     sign(payload: obj<any>): string;
@@ -151,22 +177,5 @@ declare class JWTInterface extends sidGenerator {
     save(xjwts: ServerSide): string;
     new(payload: obj<any>): string;
 }
-declare class Fjson<T extends fs> {
-    fs: string;
-    f_timed: number;
-    data: Map<any, T>;
-    key: string;
-    dir: string;
-    constructor({ dir, fs, key }: {
-        dir: string;
-        fs: string;
-        key: string;
-    });
-    init(): Promise<void>;
-    get(val: string | undefined): Promise<T | null>;
-    set(data: T): Promise<void>;
-    delete(key: string): Promise<void>;
-    json(): Promise<unknown[]>;
-}
 
-export { Auth, AuthInterface, FSession, Fjson, JWTInterface, PGCache, ServerSide, decodeSID };
+export { Auth, AuthInterface, FSCached, FSInterface, FSession, JWTSession, PGCache, PGInterface, PostgreSession, ServerSide, type authConfig };

@@ -1,0 +1,21 @@
+export type dbs = "fs" | "postgres";
+export type authConfig = {
+  COOKIE_NAME: string;
+  COOKIE_DOMAIN: string;
+  COOKIE_PATH: string;
+  COOKIE_HTTPONLY: boolean;
+  COOKIE_SECURE: boolean;
+  REFRESH_EACH_REQUEST: boolean;
+  COOKIE_SAMESITE: string;
+  KEY_PREFIX: string;
+  PERMANENT: boolean;
+  USE_SIGNER: boolean;
+  ID_LENGTH: number;
+  FILE_THRESHOLD: number;
+  LIFETIME: number;
+  MAX_COOKIE_SIZE: number;
+  INTERFACE: dbs;
+  STORAGE: string;
+  JWT_STORAGE: string;
+  JWT_LIFETIME: number;
+};

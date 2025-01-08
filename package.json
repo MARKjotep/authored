@@ -10,8 +10,11 @@
     "dist"
   ],
   "scripts": {
-    "cp_core": "mkdir -p ./src/core; cp -L ../_misc/@.ts ./src/core; cp -L ../_misc/@n.ts ./src/core;",
-    "link__": "mkdir -p ./src/core; ln -sf ../../../_misc/@.ts ./src/core; ln -sf ../../../_misc/@n.ts ./src/core; ln -sf ../_misc/tsconfig.json ./",
+    "util": "cp -r ../misc/util ./",
+    "dirs": "for dir in ./src ./dist ./test ./util ./types; do mkdir -p $dir; done",
+    "@": "ln -sf ../../misc/@/ ./src",
+    "ts": "ln -sf ../misc/tsconfig.json ./;",
+    "init": "bun run dirs && bun run util && bun run @ && bun run ts;",
     "build": "tsc && bun build ./src/index.ts --outdir ./dist --minify --packages external --target bun && rollup -c ./util/rollup.config.js"
   },
   "keywords": [
