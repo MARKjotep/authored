@@ -45,23 +45,6 @@ declare class ServerSide extends callBack {
     get session(): ServerSide;
 }
 
-declare class Signator {
-    salt: string;
-    constructor(salt: string);
-    getSignature(val: string): string;
-    deriveKey(): Buffer;
-    sign(val: string): string;
-    unsign(signedVal: string): boolean;
-    loadUnsign(vals: string): string | undefined;
-    verifySignature(val: string, sig: string): boolean;
-}
-
-declare class sidGenerator {
-    signer: Signator;
-    constructor(salt: string);
-    generate(len?: number): string;
-}
-
 declare class AuthInterface extends sidGenerator {
     config: authConfig;
     constructor(config: authConfig, salt?: string);
@@ -75,17 +58,22 @@ declare class AuthInterface extends sidGenerator {
     loadHeader(req: any, readonly?: boolean): Promise<ServerSide>;
 }
 
-declare class Auth {
-    postgresClient?: Client;
-    config: authConfig;
-    constructor({ type, dir }?: {
-        type?: dbs;
-        dir?: string;
-    });
-    initStorage(path: string): this;
-    get session(): AuthInterface;
-    get jwt(): FSInterface;
+declare class Signator {
+    salt: string;
+    constructor(salt: string);
+    getSignature(val: string): string;
+    deriveKey(): Buffer;
+    sign(val: string): string;
+    unsign(signedVal: string): boolean;
+    loadUnsign(vals: string): string | undefined;
+    verifySignature(val: string, sig: string): boolean;
 }
+declare class sidGenerator {
+    signer: Signator;
+    constructor(salt: string);
+    generate(len?: number): string;
+}
+declare function decodeSID(str: string): string;
 
 interface bs$1 {
     f_timed?: number;
@@ -178,4 +166,16 @@ declare class JWTSession extends sidGenerator {
     new(payload: obj<any>): string;
 }
 
-export { Auth, AuthInterface, FSCached, FSInterface, FSession, JWTSession, PGCache, PGInterface, PostgreSession, ServerSide, type authConfig };
+declare class Auth {
+    postgresClient?: Client;
+    config: authConfig;
+    constructor({ type, dir }?: {
+        type?: dbs;
+        dir?: string;
+    });
+    initStorage(path: string): this;
+    get session(): AuthInterface;
+    get jwt(): FSInterface;
+}
+
+export { Auth, AuthInterface, FSCached, FSInterface, FSession, JWTSession, PGCache, PGInterface, PostgreSession, ServerSide, Signator, type authConfig, type dbs, decodeSID, sidGenerator };

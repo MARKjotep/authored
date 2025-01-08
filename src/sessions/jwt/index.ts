@@ -1,9 +1,8 @@
 import { CryptoHasher } from "bun";
 import { getSecret, obj } from "../../@";
-import { sidGenerator } from "../../sid";
 import { sign, verify } from "jsonwebtoken";
 import { randomBytes } from "node:crypto";
-import { ServerSide } from "../../auth";
+import { ServerSide, sidGenerator } from "../../auth";
 
 export class JWTSession extends sidGenerator {
   salt: string;

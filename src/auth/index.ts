@@ -1,46 +1,70 @@
-import { Client } from "pg";
 import { AuthInterface } from "./interface";
 import { authConfig, dbs } from "./config";
-import { FSInterface } from "../session";
-export * from "./server";
+import { buffed, hdigest, strDecode } from "../@";
+import { randomBytes } from "node:crypto";
+import { CryptoHasher } from "bun";
 
-export { AuthInterface, authConfig };
+export { ServerSide } from "./server";
+export { AuthInterface, authConfig, dbs };
 
-export class Auth {
-  postgresClient?: Client;
-  config: authConfig = {
-    COOKIE_NAME: "session",
-    COOKIE_DOMAIN: "127.0.0.1",
-    COOKIE_PATH: "/",
-    COOKIE_HTTPONLY: true,
-    COOKIE_SECURE: true,
-    REFRESH_EACH_REQUEST: false,
-    COOKIE_SAMESITE: "Strict",
-    KEY_PREFIX: "session:",
-    PERMANENT: true,
-    USE_SIGNER: false,
-    ID_LENGTH: 32,
-    FILE_THRESHOLD: 500,
-    LIFETIME: 31,
-    MAX_COOKIE_SIZE: 4093,
-    INTERFACE: "fs",
-    STORAGE: ".sessions",
-    JWT_STORAGE: ".jwt",
-    JWT_LIFETIME: 5,
-  };
-  constructor({ type = "fs", dir }: { type?: dbs; dir?: string } = {}) {
-    type && (this.config.INTERFACE = type);
-    dir && this.initStorage(dir);
+export class Signator {
+  constructor(public salt: string) {}
+  getSignature(val: string) {
+    const key = this.deriveKey().toString();
+    return hdigest(key, val).toString("base64");
   }
-  initStorage(path: string) {
-    this.config.STORAGE = path + "/" + this.config.STORAGE;
-    this.config.JWT_STORAGE = path + "/" + this.config.JWT_STORAGE;
-    return this;
+  deriveKey() {
+    return hdigest(this.salt);
   }
-  get session(): AuthInterface {
-    return new FSInterface(this.config, this.config.STORAGE);
+  sign(val: string) {
+    const sig = this.getSignature(val);
+    const vals = buffed(val + "." + sig);
+    return strDecode(vals);
   }
-  get jwt() {
-    return new FSInterface(this.config, this.config.JWT_STORAGE);
+  unsign(signedVal: string) {
+    if (!(signedVal.indexOf(".") > -1)) {
+      throw Error("No sep found");
+    }
+    const isept = signedVal.indexOf(".");
+    const val = signedVal.slice(0, isept);
+    const sig = signedVal.slice(isept + 1);
+    return this.verifySignature(val, sig);
   }
+  loadUnsign(vals: string) {
+    if (this.unsign(vals)) {
+      const sval = buffed(vals);
+      const sept = buffed(".").toString()[0];
+      if (!(sept in sval)) {
+        throw Error("No sep found");
+      }
+      const isept = sval.indexOf(sept);
+      const val = sval.subarray(0, isept);
+
+      return Buffer.from(val.toString(), "base64").toString("utf-8");
+    }
+  }
+  verifySignature(val: string, sig: string) {
+    return this.getSignature(val) == sig ? true : false;
+  }
+}
+
+export class sidGenerator {
+  signer: Signator;
+  constructor(salt: string) {
+    this.signer = new Signator(salt);
+  }
+  generate(len = 21) {
+    const rbyte = randomBytes(len);
+    let lbyte = rbyte.toString("base64");
+    if (lbyte.endsWith("=")) {
+      lbyte = lbyte.slice(0, -1);
+    }
+    return this.signer.sign(lbyte);
+  }
+}
+
+export function decodeSID(str: string) {
+  const hash = new CryptoHasher("md5");
+  hash.update(str);
+  return hash.digest("hex");
 }

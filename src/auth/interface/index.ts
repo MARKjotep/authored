@@ -1,7 +1,7 @@
 import { authConfig } from "../config";
 import { obj, setCookie } from "../../@";
 import { ServerSide } from "../server";
-import { sidGenerator } from "../../sid";
+import { sidGenerator } from "..";
 
 export class AuthInterface extends sidGenerator {
   constructor(

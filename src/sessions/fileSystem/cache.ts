@@ -1,6 +1,6 @@
 import { file, gunzipSync, gzipSync, write } from "bun";
 import { promises as fr } from "node:fs";
-import { decodeSID } from "../../sid";
+import { decodeSID } from "../../auth";
 import { strDecode } from "../../@";
 import { isFile } from "../../@/bun";
 

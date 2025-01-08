@@ -1,6 +1,5 @@
 import { obj } from "../../@";
-import { sidGenerator } from "../../sid";
-import { ServerSide } from "../../auth";
+import { ServerSide, sidGenerator } from "../../auth";
 export declare class JWTSession extends sidGenerator {
     salt: string;
     constructor();

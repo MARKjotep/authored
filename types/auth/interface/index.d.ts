@@ -1,6 +1,6 @@
 import { authConfig } from "../config";
 import { ServerSide } from "../server";
-import { sidGenerator } from "../../sid";
+import { sidGenerator } from "..";
 export declare class AuthInterface extends sidGenerator {
     config: authConfig;
     constructor(config: authConfig, salt?: string);

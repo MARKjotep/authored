@@ -10,7 +10,6 @@ export class FSession extends ServerSide {}
 export class FSInterface extends AuthInterface {
   cacher: FSCached<ffcache>;
   side = FSession;
-
   constructor(
     config: authConfig,
     cacherpath = ".sessions",
