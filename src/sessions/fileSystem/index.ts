@@ -1,6 +1,7 @@
+import { authConfig } from "../..";
 import { Time } from "../../@";
-import { authConfig, AuthInterface } from "../../auth";
-import { ServerSide } from "../../auth";
+import { AuthInterface } from "../../auth/interface";
+import { ServerSide } from "../../auth/server";
 import { ffcache, FSCached } from "./cache";
 
 export { FSCached };

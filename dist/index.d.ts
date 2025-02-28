@@ -1,26 +1,21 @@
 import { Client } from 'pg';
 
-type dbs = "fs" | "postgres";
-type authConfig = {
-    COOKIE_NAME: string;
-    COOKIE_DOMAIN: string;
-    COOKIE_PATH: string;
-    COOKIE_HTTPONLY: boolean;
-    COOKIE_SECURE: boolean;
-    REFRESH_EACH_REQUEST: boolean;
-    COOKIE_SAMESITE: string;
-    KEY_PREFIX: string;
-    PERMANENT: boolean;
-    USE_SIGNER: boolean;
-    ID_LENGTH: number;
-    FILE_THRESHOLD: number;
-    LIFETIME: number;
-    MAX_COOKIE_SIZE: number;
-    INTERFACE: dbs;
-    STORAGE: string;
-    JWT_STORAGE: string;
-    JWT_LIFETIME: number;
-};
+declare class Signator {
+    salt: string;
+    constructor(salt: string);
+    getSignature(val: string): string;
+    deriveKey(): Buffer;
+    sign(val: string): string;
+    unsign(signedVal: string): boolean;
+    loadUnsign(vals: string): string | undefined;
+    verifySignature(val: string, sig: string): boolean;
+}
+
+declare class sidGenerator {
+    signer: Signator;
+    constructor(salt: string);
+    generate(len?: number): string;
+}
 
 type obj<T> = Record<string, T>;
 
@@ -57,23 +52,6 @@ declare class AuthInterface extends sidGenerator {
     setCookie(xsesh: ServerSide, life: Date | number, _sameSite?: string): string;
     loadHeader(req: any, readonly?: boolean): Promise<ServerSide>;
 }
-
-declare class Signator {
-    salt: string;
-    constructor(salt: string);
-    getSignature(val: string): string;
-    deriveKey(): Buffer;
-    sign(val: string): string;
-    unsign(signedVal: string): boolean;
-    loadUnsign(vals: string): string | undefined;
-    verifySignature(val: string, sig: string): boolean;
-}
-declare class sidGenerator {
-    signer: Signator;
-    constructor(salt: string);
-    generate(len?: number): string;
-}
-declare function decodeSID(str: string): string;
 
 interface bs$1 {
     f_timed?: number;
@@ -166,6 +144,27 @@ declare class JWTSession extends sidGenerator {
     new(payload: obj<any>): string;
 }
 
+type dbs = "fs" | "postgres";
+interface authConfig {
+    COOKIE_NAME: string;
+    COOKIE_DOMAIN: string;
+    COOKIE_PATH: string;
+    COOKIE_HTTPONLY: boolean;
+    COOKIE_SECURE: boolean;
+    REFRESH_EACH_REQUEST: boolean;
+    COOKIE_SAMESITE: string;
+    KEY_PREFIX: string;
+    PERMANENT: boolean;
+    USE_SIGNER: boolean;
+    ID_LENGTH: number;
+    FILE_THRESHOLD: number;
+    LIFETIME: number;
+    MAX_COOKIE_SIZE: number;
+    INTERFACE: dbs;
+    STORAGE: string;
+    JWT_STORAGE: string;
+    JWT_LIFETIME: number;
+}
 declare class Auth {
     postgresClient?: Client;
     config: authConfig;
@@ -177,5 +176,11 @@ declare class Auth {
     get session(): AuthInterface;
     get jwt(): FSInterface;
 }
+declare class Session {
+    session: AuthInterface;
+    jwt: AuthInterface;
+    jwtInt: JWTSession;
+    init(sh: Auth): void;
+}
 
-export { Auth, AuthInterface, FSCached, FSInterface, FSession, JWTSession, PGCache, PGInterface, PostgreSession, ServerSide, Signator, type authConfig, type dbs, decodeSID, sidGenerator };
+export { Auth, AuthInterface, FSCached, FSInterface, FSession, PGCache, PGInterface, PostgreSession, ServerSide, Session, type authConfig };

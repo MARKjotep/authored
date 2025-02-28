@@ -1,8 +1,9 @@
 import { Client } from "pg";
-import { authConfig, AuthInterface } from "../../auth";
-import { ServerSide } from "../../auth";
+import { AuthInterface } from "../../auth/interface";
+import { ServerSide } from "../../auth/server";
 import { PGCache } from "./cache";
 import { Time } from "../../@";
+import { authConfig } from "../..";
 
 export { PGCache };
 

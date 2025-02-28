@@ -1,11 +1,4 @@
-import { AuthInterface } from "./interface";
-import { authConfig, dbs } from "./config";
-import { buffed, hdigest, strDecode } from "../@";
-import { randomBytes } from "node:crypto";
-import { CryptoHasher } from "bun";
-
-export { ServerSide } from "./server";
-export { AuthInterface, authConfig, dbs };
+import { buffed, hdigest, strDecode } from "../../@";
 
 export class Signator {
   constructor(public salt: string) {}
@@ -46,25 +39,4 @@ export class Signator {
   verifySignature(val: string, sig: string) {
     return this.getSignature(val) == sig ? true : false;
   }
-}
-
-export class sidGenerator {
-  signer: Signator;
-  constructor(salt: string) {
-    this.signer = new Signator(salt);
-  }
-  generate(len = 21) {
-    const rbyte = randomBytes(len);
-    let lbyte = rbyte.toString("base64");
-    if (lbyte.endsWith("=")) {
-      lbyte = lbyte.slice(0, -1);
-    }
-    return this.signer.sign(lbyte);
-  }
-}
-
-export function decodeSID(str: string) {
-  const hash = new CryptoHasher("md5");
-  hash.update(str);
-  return hash.digest("hex");
 }

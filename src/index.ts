@@ -1,9 +1,32 @@
 import { Client } from "pg";
-import { authConfig, AuthInterface, dbs } from "./auth";
-import { FSInterface, PGInterface } from "./sessions";
+import { AuthInterface } from "./auth/interface";
+import { FSInterface, FSCached, FSession } from "./sessions/fileSystem";
+import { PGCache, PGInterface, PostgreSession } from "./sessions/postgres";
+import { $$, Singleton } from "./@";
+import { JWTSession } from "./sessions/jwt";
 
-export * from "./sessions";
-export * from "./auth";
+type dbs = "fs" | "postgres";
+
+export interface authConfig {
+  COOKIE_NAME: string;
+  COOKIE_DOMAIN: string;
+  COOKIE_PATH: string;
+  COOKIE_HTTPONLY: boolean;
+  COOKIE_SECURE: boolean;
+  REFRESH_EACH_REQUEST: boolean;
+  COOKIE_SAMESITE: string;
+  KEY_PREFIX: string;
+  PERMANENT: boolean;
+  USE_SIGNER: boolean;
+  ID_LENGTH: number;
+  FILE_THRESHOLD: number;
+  LIFETIME: number;
+  MAX_COOKIE_SIZE: number;
+  INTERFACE: dbs;
+  STORAGE: string;
+  JWT_STORAGE: string;
+  JWT_LIFETIME: number;
+}
 
 export class Auth {
   postgresClient?: Client;
@@ -34,6 +57,7 @@ export class Auth {
   initStorage(path: string) {
     this.config.STORAGE = path + "/" + this.config.STORAGE;
     this.config.JWT_STORAGE = path + "/" + this.config.JWT_STORAGE;
+
     return this;
   }
   get session(): AuthInterface {
@@ -47,3 +71,20 @@ export class Auth {
     return new FSInterface(this.config, this.config.JWT_STORAGE);
   }
 }
+
+export class Session {
+  declare session: AuthInterface;
+  declare jwt: AuthInterface;
+  declare jwtInt: JWTSession;
+
+  init(sh: Auth) {
+    this.jwtInt = new JWTSession();
+    this.session = sh.session;
+    this.jwt = sh.jwt;
+  }
+}
+
+export { ServerSide } from "./auth/server";
+export { AuthInterface };
+export { FSInterface, FSCached, FSession };
+export { PGCache, PGInterface, PostgreSession };
